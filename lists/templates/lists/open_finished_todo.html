@@ -1,0 +1,23 @@
+<div class="row">
+  <div class="one-half column open-todos">
+    <h6 class="docs-header open-todos">{{ todolist.count_open }} open</h6>
+      <div id="simpleList" class="list-group" >
+        {% for todo in todolist.todos.all %}
+          {% if not todo.is_finished %}
+            <div class="list-group-item">{{ todo.description }}</div>
+           {% endif %}
+        {% endfor %}
+
+      </div>
+  </div>
+  <div class="one-half column finished-todos">
+    <h6 class="docs-header finished-todos">{{ todolist.count_finished }} finished</h6>
+    <ul>
+      {% for todo in todolist.todos.all %}
+      {% if todo.is_finished %}
+      <li><input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}" checked="checked"> {{ todo.description }}</li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+</div>

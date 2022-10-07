@@ -1,0 +1,12 @@
+{% for todo in todolist.todos.all %}
+{% if not todo.is_finished %}
+<div class="list-group-item" style="text-align:left" data-todo-id="{{ todo.id }}" data-todo-rank="{{ todo.ranking }}">
+    <input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}"
+        onclick="function js_fuction(){toggle_open_finshed('{{ todo.id }}')};js_fuction()">
+    {{ todo.description }}
+    <span style="float:right">
+        <i class="fas fa-align-justify"></i>
+    </span>
+</div>
+{% endif %}
+{% endfor %}

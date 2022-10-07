@@ -1,46 +1,273 @@
-{% extends "base.html" %}
 
-{% load static %}
-
-{% block js %}
+{% extends "base.html" %} {% load static %} {% block js %}
 <script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.9.0/moment.min.js"></script>
-<script src="{% static 'lists/js/lists.js' %}"></script>
-{% endblock %}
-
-{% block body %}
-<section class="header">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<!-- Latest Sortable -->
+<script src="https://raw.githack.com/SortableJS/Sortable/master/Sortable.js"></script>
+{% endblock %} {% block body %}
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+<section class="header mb-10">
   <div class="row">
     <div class="three columns value-prop"></div>
     <div class="six columns">
       <div class="title">{{todolist.title}}</div>
-      <form action="{% url 'lists:add_todo' todolist.id %}" method=post>
-        {% csrf_token %}
-        {{ form }}
-        <input type="submit" value="Submit">
+      <form onsubmit="return false" id="todolistnameform">
+        {% csrf_token %} {{ form }}
+        <br>
+        <br>
+        <input type="submit" value="Submit" id="submit_button" />
       </form>
+       {% if  user.is_authenticated %}
+        <button onclick="CopyTheSecretUrl()">Copy URL</button>
+          {% if  not user == todolist.creator %}
+            <a href="{% url "lists:toogle_save_other_user_todolist" todolist.pk %}">
+              {% if user in todolist.saved_todo_user.all %}
+              <button>Remove from Saved</button>
+              {% else %}
+              <button>Save To my Todo List</button>
+                  
+              
+              {% endif %}
+            </a>
+       {% endif %}
+       {% endif %}
     </div>
-    <div class="row">
-      <div class="one-half column open-todos">
-        <h6 class="docs-header open-todos">{{ todolist.count_open }} open</h6>
-        <ul>
-          {% for todo in todolist.todos.all %}
-            {% if not todo.is_finished %}
-              <li><input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}"> {{ todo.description }}</li>
-            {% endif %}
-          {% endfor %}
-        </ul>
+    <span id="todolistconatiner">
+      <div class="row">
+        <div class="one-half column open-todos">
+          <h6 class="docs-header open-todos">
+            <span id="open_todo_list_couter">
+              {{ todolist.count_open }} </span>
+            open
+          </h6>
+          <div id="simpleList" class="list-group">
+            {% for todo in todolist.todos.all %} {% if not todo.is_finished %}
+            <div class="list-group-item" style="text-align:left" data-todo-id="{{ todo.id }}"
+              data-todo-rank="{{ todo.ranking }}">
+              <input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}"
+                onclick="function js_fuction(){toggle_open_finshed('{{ todo.id }}')};js_fuction()">
+              {{ todo.description }}
+              <span style="float:right">
+                <i class="fas fa-align-justify"></i>
+              </span>
+            </div>
+            {% endif %} {% endfor %}
+          </div>
+        </div>
+        <span id="finishedtodoslist">
+          <div class="one-half column finished-todos" style="margin-left: 10px;">
+            <h6 class="docs-header finished-todos">{{ todolist.count_finished }} finished</h6>
+            <ul>
+              {% for todo in todolist.todos.all %} {% if todo.is_finished %}
+              <li><input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}" checked="checked"
+                  onclick="function js_fuction(){toggle_open_finshed('{{ todo.id }}')};js_fuction()">
+                {{todo.description}}</li>
+              {% endif %} {% endfor %}
+            </ul>
+          </div>
+        </span>
       </div>
-      <div class="one-half column finished-todos">
-        <h6 class="docs-header finished-todos">{{ todolist.count_finished }} finished</h6>
-        <ul>
-          {% for todo in todolist.todos.all %}
-            {% if todo.is_finished %}
-            <li><input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}" checked="checked"> {{ todo.description }}</li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
+    </span>
   </div>
 </section>
+<script type="text/javascript" src="{% static 'lists/js/reconnecting-websocket.js' %}"></script>
+
+<script type="text/javascript">
+  let todoListNameForm = document.getElementById("todolistnameform");
+  let todoListDescription = document.getElementById("id_description");
+  let todolistconatiner = document.getElementById("todolistconatiner");
+  let submit_button_form = document.getElementById("submit_button");
+  let simpleListDiv = document.getElementById("simpleList");
+  let open_todo_list_couter = document.getElementById("open_todo_list_couter");
+  let finishedtodoslist = document.getElementById("finishedtodoslist");
+
+  let csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+  let todolist_id = "{{todolist.pk}}";
+
+
+
+  var chatSocket = new ReconnectingWebSocket(
+                  'ws://'
+                  + window.location.host
+                  + '/ws/'+todolist_id+"/"
+              );
+  chatSocket.onmessage = function(e) {
+              var data=JSON.parse(e.data);
+
+              console.log("datat backent",data)
+              if (data.command=="change_todolist"){
+                console.log("reload the chnages");
+                console.log("datat command",data.command);
+                reload_the_frame();
+
+
+              }
+            };
+            chatSocket.onclose = function(e) {
+                console.error('Chat socket closed unexpectedly',e);
+            };
+
+
+        
+
+  sortable_list = Sortable.create(simpleList, {
+    animation: 150,
+    ghostClass: 'blue-background-class',
+    // Element dragging ended
+    onEnd: function (evt) {
+
+      if (evt.oldDraggableIndex !== evt.newDraggableIndex) {
+        // check that the item is not dropped on itself
+        change_ordering();
+      }
+
+
+    },
+
+  });
+  function get_index_ranking_dic() {
+    let simpleListArray = $j("#simpleList").children();
+    var dict = {}
+    let n = simpleListArray.length
+    for (var i = 0; i < n; i++) {
+      let todo_id = simpleListArray[i].getAttribute("data-todo-id");
+      let todo_rank = simpleListArray[i].getAttribute("data-todo-rank");
+      dict[todo_id] = i;
+    }
+
+    return dict;
+
+  }
+  {% if  user.is_authenticated %}
+  function CopyTheSecretUrl() {
+    /* Get the text field */
+    let todo_list_secret_id ="{{todolist.secret_id_str}}";
+    let url_with_auth_id=window.location.origin + "/todolist/"+todolist_id+"?authID="+todo_list_secret_id+"/"
+
+
+     /* Copy the text inside the text field */
+    navigator.clipboard.writeText(url_with_auth_id);
+
+    /* Alert the copied text */
+    alert("Copied the text: " + url_with_auth_id);
+  } 
+  {% endif %}
+
+
+
+
+  function toggle_open_finshed(todo_id) {
+    // toogle the todo list to open to finshed or vice versa 
+
+    $j.ajax({
+      type: "POST",
+      url: window.location.origin + "/toggle-todo-finshed-open/" + todolist_id + "/" + todo_id + "/",
+      data: {
+        csrfmiddlewaretoken: csrftoken,
+      },
+
+      success: function (response) {
+        console.log(response);
+        chatSocket.send(JSON.stringify({
+                  'command':'change_todolist',
+              }));
+
+
+      },
+
+    });
+
+
+
+
+
+  }
+
+
+
+  function change_ordering() {
+
+    $j.ajax({
+      type: "POST",
+
+      url: window.location.origin + "/change-ordering-todo/" + todolist_id + "/",
+
+
+      data: {
+        csrfmiddlewaretoken: csrftoken,
+        dict: JSON.stringify(get_index_ranking_dic())
+        
+      },
+
+      success: function (response) {
+        console.log(response);
+        chatSocket.send(JSON.stringify({
+                  'command':'change_todolist',
+              }));
+
+
+
+      },
+
+    });
+  }
+
+
+
+
+  function reload_the_frame() {
+    page_load_open = $j.get(`/open-finshed-todo/${todolist_id}/`, function (data) {
+      simpleListDiv.innerHTML = data;
+
+    })
+    page_load_open.always(function () {
+      submit_button_form.disabled = true;
+    })
+    page_load_open.done(function () {
+      submit_button_form.disabled = null;
+      open_todo_list_couter.textContent = $j("#simpleList").children().length;
+    })
+
+
+    page_load_finshed = $j.get(`/finshed-open-todo/${todolist_id}/`, function (data) {
+      finishedtodoslist.innerHTML = data;
+
+    })
+    page_load_finshed.always(function () {
+      submit_button_form.disabled = true;
+    })
+    page_load_finshed.done(function () {
+      submit_button_form.disabled = null;
+
+    })
+  }
+
+  function add_todoList(e) {
+    e.preventDefault()
+    request_body = {
+      "description": todoListDescription.value
+    }
+
+    fetch(`/add-todolist/${todolist_id}/`,
+      {
+        method: "POST",
+        csrfmiddlewaretoken: csrftoken,
+        body: JSON.stringify(request_body),
+        headers: {
+          "X-CSRFToken": csrftoken
+        }
+
+      }).then((response) => {
+        todoListNameForm.reset();
+        chatSocket.send(JSON.stringify({
+                  'command':'change_todolist',
+              }));
+        
+        return response.json();
+
+      })
+  }
+  todoListNameForm.addEventListener("submit", add_todoList);
+</script>
 {% endblock %}

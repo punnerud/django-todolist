@@ -1,0 +1,13 @@
+<div class="one-half column finished-todos" style="margin-left: 10px;">
+    <h6 class="docs-header finished-todos">{{ todolist.count_finished }} finished</h6>
+    <ul>
+        {% for todo in todolist.todos.all %}
+        {% if todo.is_finished %}
+        <li><input type="checkbox" id="checkbox" data-todo-id="{{ todo.id }}" checked="checked"
+                onclick="function js_fuction(){toggle_open_finshed('{{ todo.id }}')};js_fuction()">
+            {{ todo.description }}
+        </li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</div>

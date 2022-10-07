@@ -36,6 +36,9 @@ INSTALLED_APPS = (
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # 3rd party apps
+    "channels",
+    # local apps
     "todolist",
     "lists",
     "accounts",
@@ -86,8 +89,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
 
 STATIC_URL = "/static/"
-
-
 # Login settings
 
 LOGIN_URL = "/auth/login/"
@@ -116,3 +117,14 @@ TEMPLATES = [
         },
     },
 ]
+# DJANGO CHANNELS SETTINGS
+ASGI_APPLICATION = "todolist.asgi.application"
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+
+# CELERYA TASK AND QUEUE
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+# CELERY_ACCEPT_CONTENT = ["application/json"]
+# CELERY_TASK_SERIALIZER = "json"
+# CELERY_RESULT_SERIALIZER = "json"
+# CELERY_TIMEZONE = "Asia/Kolkata"

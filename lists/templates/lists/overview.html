@@ -64,5 +64,44 @@ $(document).ready(function() {
       </table>
     </div>
   </div>
+  <div class="row">
+    <div class="u-full-width">
+      <h6 class="docs-header todolist-overview">Your Saved Todos</h6>
+      <table id="todolist-overview-table" class="tablesorter">
+        <thead>
+          <tr>
+            <th class='todolist-title'>Todolist title</th>
+            <th># Open</th>
+            <th># Finished</th>
+            <th class="datetime">Created at</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for todolist in user.my_saved_todo.all %}
+          <tr>
+            <td class='todolist-title'>
+              <a onclick="function js_fuction(){CopyTheSecretUrl('{{todolist.pk}}','{{todolist.secret_id_str}}')};js_fuction()" style="cursor: pointer;">{{ todolist.title }}</a></td>
+            <td>{{ todolist.count_open }}</td>
+            <td>{{ todolist.count_finished }}</td>
+            <td data-time-in-seconds="{{ todolist.created_at|in_seconds }}">{{ todolist.created_at|humanize }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>  
 </section>
+<script type="text/javascript">
+    function CopyTheSecretUrl(todolist_id,todo_list_secret_id) {
+    /* Get the text field */;
+    let url_with_auth_id=window.location.origin + "/todolist/"+todolist_id+"?authID="+todo_list_secret_id+"/"
+
+
+     /* Copy the text inside the text field */
+    navigator.clipboard.writeText(url_with_auth_id);
+    window.location.replace(url_with_auth_id);
+
+    /* Alert the copied text */
+  } 
+</script>
 {% endblock %}
